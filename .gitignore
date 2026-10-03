@@ -1,0 +1,11 @@
+# Model checkpoints (hang GB, khong duoc commit)
+checkpoints/
+
+# He thong / IDE
+.DS_Store
+.vscode/
+.ipynb_checkpoints/
+__pycache__/
+
+# Cache HuggingFace neu lo tai vao thu muc project
+.cache/

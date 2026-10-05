@@ -1,0 +1,5 @@
+cau_hinh,macro_f1,accuracy
+Baseline (S1),0.3645,0.3893
+Ky thuat tot nhat rieng le (S3_weighted),0.371,0.4053
+Ket hop ca 3 (weighting+tags+LoRA),0.3527,0.3907
+Ensemble TOAN BO (15 model),0.3909,0.4233

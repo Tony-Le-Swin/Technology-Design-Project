@@ -1,0 +1,4 @@
+lever,epochs,macro_f1,accuracy,select_by,weight_decay,delta_vs_baseline
+1_epoch_cap,4,0.36621175303108416,0.39466666666666667,,,0.0018
+2_select_loss,,0.3492833763624807,0.36933333333333335,loss,,-0.0152
+3_weight_decay,,0.35368774084024324,0.374,,0.05,-0.0108

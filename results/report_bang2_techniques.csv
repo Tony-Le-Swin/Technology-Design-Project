@@ -1,0 +1,6 @@
+ky_thuat,macro_f1,accuracy,delta
+"Baseline (S1, khong ky thuat)",0.3645,0.3893,0.0
++ Sequential transfer (S2),0.3528,0.3753,-0.0116
++ Dataset weighting,0.371,0.4053,0.0065
++ Domain tags,0.3612,0.4033,-0.0033
++ LoRA,0.3648,0.3893,0.0004

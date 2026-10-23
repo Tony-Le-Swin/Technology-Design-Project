@@ -1,0 +1,17 @@
+model,macro_f1,accuracy
+ENSEMBLE_ALL,0.3909,0.4233
+S3_weighted,0.371,0.4053
+S1_abl_1_epoch_cap,0.3662,0.3947
+S1_mean,0.3661,0.3813
+S1_lora,0.3648,0.3893
+S1_seed1,0.3647,0.39
+S1,0.3645,0.3893
+S3_tagged,0.3612,0.4033
+S3,0.3564,0.4047
+S1_seed2,0.3553,0.3833
+S1_abl_3_weight_decay,0.3537,0.374
+S2,0.3528,0.3753
+S_combined,0.3527,0.3907
+S1_abl_2_select_loss,0.3493,0.3693
+S1_long,0.3491,0.372
+S2a,0.1387,0.168

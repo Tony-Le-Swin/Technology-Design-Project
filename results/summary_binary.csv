@@ -1,0 +1,5 @@
+strategy,macro_f1,accuracy
+A   — General only,0.5542,0.5813
+B   — Domain only,0.804,0.806
+C   — Mixed,0.782,0.7827
+Seq — Sequential transfer,0.7983,0.8

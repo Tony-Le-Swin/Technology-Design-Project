@@ -1,0 +1,22 @@
+section,model,description,task,macro_f1,accuracy
+6,S1,Strategy 1 — Domain only (Model B),12-class,0.3645,0.3893
+7,S2a,Strategy 2a — General only (Model A),12-class,0.1387,0.168
+7,S2,Strategy 2b — Sequential transfer,12-class,0.3528,0.3753
+8,S3,Strategy 3 — Mixed (Model C),12-class,0.3564,0.4047
+10,S1_mean,Extension — Mean pooling,12-class,0.3661,0.3813
+10,S1_seed1,Extension — Seed ensemble (seed 1),12-class,0.3647,0.39
+10,S1_seed2,Extension — Seed ensemble (seed 2),12-class,0.3553,0.3833
+11.2,S3_weighted,Transfer technique — Dataset weighting,12-class,0.371,0.4053
+11.3,S3_tagged,Transfer technique — Domain tags,12-class,0.3612,0.4033
+12,S1_long,"Ablation — Longer training (12 ep, no technique)",12-class,0.3491,0.372
+12,S1_abl_1_epoch_cap,Ablation — Lower epoch cap,12-class,0.3662,0.3947
+12,S1_abl_2_select_loss,Ablation — Select checkpoint by val_loss,12-class,0.3493,0.3693
+12,S1_abl_3_weight_decay,Ablation — Higher weight decay,12-class,0.3537,0.374
+13,S1_lora,LoRA (parameter-efficient fine-tuning),12-class,0.3648,0.3893
+14,S_combined,Combined: weighting + tags + LoRA,12-class,0.3527,0.3907
+17,S1_rcnn,"RCNN head (all tokens, BiLSTM+Conv1d)",12-class,0.3778,0.398
+15.2,B1_bin,Binary Strategy B — Domain only,binary,0.804,0.806
+15.3,A_bin,Binary Strategy A — General only,binary,0.5542,0.5813
+15.3,Seq_bin,Binary — Sequential transfer,binary,0.7983,0.8
+15.4,C_bin,Binary Strategy C — Mixed,binary,0.782,0.7827
+14,ENSEMBLE_ALL,Ensemble of 16 12-class models,12-class,0.3895,0.422

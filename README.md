@@ -8,7 +8,7 @@ This project compares three fine-tuning strategies for emotion classification, e
 Datasets
 GoEmotions — 28-label, general domain. Mapped to the 12-label StockEmotions label space for cross-dataset evaluation (neutral → ambiguous, full 12/12 coverage).
 StockEmotions — 12-label, financial domain. Used as the common evaluation set for all three strategies.
-Strategies
+Strategies:
 A — Domain-Only Fine-Tuning
 
 Fine-tune the base model directly on StockEmotions (financial domain only). No exposure to GoEmotions. Serves as the domain-specific baseline.

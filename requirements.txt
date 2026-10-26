@@ -1,0 +1,6 @@
+streamlit>=1.40
+pandas
+scikit-learn
+matplotlib
+# Live prediction (tab "Try a model") needs torch + transformers and the fine-tuned checkpoints.
+# They are not installed on Streamlit Community Cloud, so the app only shows the Results tab there.

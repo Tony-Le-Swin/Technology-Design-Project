@@ -34,3 +34,30 @@ Experiment tracking via Weights & Biases.
 Downsampling
 
 GoEmotions is downsampled to counteract neutral label dominance (~45% of the single-label data after mapping). Downsampling proportions are computed from the StockEmotions train split rather than hardcoded.
+## Repository structure
+
+| Folder | Contents |
+| --- | --- |
+| `data/` | Raw and cleaned datasets: `goemotions_mrm8488_train.csv`, `stockemotions_full.csv`, `general_clean.csv`, `domain_clean.csv` |
+| `eda/` | Exploratory data analysis: `GoEmotions_Cleaning_and_EDA.ipynb`, `stockEmotionsEDA.ipynb` |
+| `machine_learning/` | Data cleaning and TF-IDF baselines (Logistic Regression, SVM, Naive Bayes): `main.ipynb` |
+| `bert/` | Transformer fine-tuning: `bert_final.ipynb` (reported results), `bert_experiments.ipynb` (all experiments) |
+| `llm/` | LLM zero-shot, few-shot and structured prompting (Claude API and a local Qwen model): `llm_experiments.ipynb` |
+| `streamlit_app/` | Demo app: `app.py` |
+| `results/` | Predictions, logits and summary tables written by the notebooks |
+| `docs/` | Project description and report |
+| `ref-code/` | Reference code |
+
+`checkpoints/` (fine-tuned model weights) is created by `bert/` notebooks and is not committed.
+
+Every notebook starts with a setup cell that moves to the repository root, so it can be run from its own folder and all paths (`data/`, `results/`, `checkpoints/`) resolve the same way.
+
+### Run the demo
+
+```bash
+python -m streamlit run streamlit_app/app.py
+```
+
+### LLM experiments
+
+Put `ANTHROPIC_API_KEY=...` in a local `.env` file (it is gitignored), then set `RUN_CLAUDE = True` in `llm/llm_experiments.ipynb`.

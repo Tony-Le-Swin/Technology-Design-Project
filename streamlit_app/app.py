@@ -1,19 +1,17 @@
-"""Streamlit demo for the A/B/C emotion-classification experiments.
-
-Run:  streamlit run app.py
-Tab 1 shows saved results (results/*.csv). Tab 2 runs a live prediction with
-any fine-tuned checkpoint found under checkpoints/<name>/best.
-"""
 from pathlib import Path
-
-import torch  # keep first: importing sklearn/matplotlib before torch segfaults on macOS (OpenMP clash)
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+try:  # keep first: importing sklearn/matplotlib before torch segfaults on macOS. Optional so the cloud deploy can skip torch.
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
-from sklearn.metrics import (ConfusionMatrixDisplay, accuracy_score, classification_report, f1_score)
+from sklearn.metrics import (ConfusionMatrixDisplay, accuracy_score, classification_report, f1_score,
+                             precision_recall_fscore_support)
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent  # repo root (this file lives in streamlit_app/)
 RESULTS = ROOT / "results"
 CKPTS = ROOT / "checkpoints"
 MAX_LEN = 64
@@ -38,7 +36,7 @@ st.set_page_config(page_title="Emotion Classification", layout="wide")
 st.title("Emotion classification - Strategy (A/B/C)")
 st.caption("GoEmotions (general) vs StockEmotions (finance), evaluated on the StockEmotions test set.")
 
-tab_results, tab_live = st.tabs(["Results", "Try a model"])
+tab_results, tab_llm, tab_live = st.tabs(["Results", "LLM vs BERT", "Try a model"])
 
 @st.cache_data
 def load_preds(file):
@@ -75,6 +73,58 @@ with tab_results:
     plt.tight_layout()
     c2.pyplot(fig)
 
+# model -> (type, prediction file); binary sentiment only (the LLM experiments were run on this task)
+LLM_RUNS = {
+    "BERT B: Domain only": ("BERT (trained)", "pred_B1_bin.csv"),
+    "BERT Sequential": ("BERT (trained)", "pred_Seq_bin.csv"),
+    "BERT C: Mixed": ("BERT (trained)", "pred_C_bin.csv"),
+    "BERT A: General only": ("BERT (trained)", "pred_A_bin.csv"),
+    "Claude zero-shot": ("LLM (no training)", "pred_LLM_claude_zeroshot_binary.csv"),
+    "Claude few-shot": ("LLM (no training)", "pred_LLM_claude_fewshot_binary.csv"),
+    "Claude structured": ("LLM (no training)", "pred_LLM_claude_structured_binary.csv"),
+    "Qwen-0.5B zero-shot": ("LLM (no training)", "pred_LLM_local_zeroshot_binary.csv"),
+    "Qwen-0.5B few-shot": ("LLM (no training)", "pred_LLM_local_fewshot_binary.csv"),
+    "Qwen-0.5B structured": ("LLM (no training)", "pred_LLM_local_structured_binary.csv"),
+}
+
+with tab_llm:
+    st.caption("Binary sentiment (positive / negative) on the same 1,500 StockEmotions test rows for every model. "
+               "LLMs are not trained: they only see a prompt. Saved results are shown; no LLM is called from this app.")
+    llm_preds = {n: (t, load_preds(f)) for n, (t, f) in LLM_RUNS.items()}
+    llm_preds = {n: (t, d) for n, (t, d) in llm_preds.items() if d is not None}
+    if not any(t.startswith("LLM") for t, _ in llm_preds.values()):
+        st.info("No LLM result files found in results/ (pred_LLM_*_binary.csv).")
+    else:
+        rows = []
+        for n, (t, d) in llm_preds.items():
+            p, r, f1, _ = precision_recall_fscore_support(d["true"], d["pred"], labels=["negative", "positive"],
+                                                          average="macro", zero_division=0)
+            rows.append({"model": n, "type": t, "accuracy": accuracy_score(d["true"], d["pred"]),
+                         "precision": p, "recall": r, "macro_f1": f1, "invalid outputs": int((d["pred"] == "invalid").sum())})
+        cmp = pd.DataFrame(rows).sort_values("macro_f1", ascending=False).round(4)
+        st.dataframe(cmp, hide_index=True, width='stretch')
+        st.bar_chart(cmp.set_index("model")[["macro_f1"]])
+
+        with st.expander("How the LLM prompts differ"):
+            st.markdown(
+                "- **zero-shot**: task and label names only.\n"
+                "- **few-shot**: adds 2 examples per label, taken from the training split only.\n"
+                "- **structured**: adds label definitions (positive = bullish, negative = bearish) and forces the answer to be one of the labels.\n"
+                "- Claude is called through the API; Qwen2.5-0.5B-Instruct runs locally and picks the label with the highest log-probability.")
+
+        pick2 = st.selectbox("Inspect a model", list(llm_preds), key="llm_pick")
+        d2 = llm_preds[pick2][1]
+        a, b = st.columns(2)
+        rep2 = pd.DataFrame(classification_report(d2["true"], d2["pred"], zero_division=0, output_dict=True)).T.round(3)
+        a.subheader("Per-class report")
+        a.dataframe(rep2, width='stretch')
+        b.subheader("Confusion matrix")
+        labs = ["negative", "positive"] + (["invalid"] if (d2["pred"] == "invalid").any() else [])
+        fig2, ax2 = plt.subplots(figsize=(5, 4.5))
+        ConfusionMatrixDisplay.from_predictions(d2["true"], d2["pred"], labels=labs, xticks_rotation=45, cmap="Blues", ax=ax2, colorbar=False)
+        plt.tight_layout()
+        b.pyplot(fig2)
+
 CKPT_LABELS = {"A_bin": "Binary", "S2a": "12 labels"}  # folder name -> display name
 
 
@@ -90,8 +140,11 @@ def load_model(name):
 
 
 with tab_live:
-    names = find_checkpoints()
-    if not names:
+    names = find_checkpoints() if HAS_TORCH else []
+    if not HAS_TORCH:
+        st.info("Live prediction is disabled on this deployment (torch is not installed). "
+                "The Results tab shows the saved predictions of every strategy.")
+    elif not names:
         st.info("No checkpoints found in checkpoints/<name>/best. Train a model in bert_final.ipynb and save it with trainer.save_model(...).")
     else:
         name = st.selectbox("Checkpoint", names, format_func=lambda n: CKPT_LABELS.get(n, n))

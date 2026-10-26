@@ -1,0 +1,11 @@
+,accuracy,precision,recall,macro_f1,invalid
+BERT B: Domain only,0.806,0.8044,0.8037,0.804,0
+Claude-structured,0.8007,0.7988,0.7992,0.799,0
+BERT Sequential,0.8,0.7981,0.7986,0.7983,0
+BERT C: Mixed,0.7827,0.782,0.7845,0.782,0
+Claude-zeroshot,0.756,0.7569,0.7576,0.756,3
+Claude-fewshot,0.7507,0.7548,0.753,0.7521,8
+Local-zeroshot,0.5967,0.604,0.6034,0.5966,0
+Local-fewshot,0.592,0.6318,0.6119,0.5824,0
+BERT A: General only,0.5813,0.5743,0.563,0.5542,0
+Local-structured,0.548,0.5713,0.5642,0.5417,0

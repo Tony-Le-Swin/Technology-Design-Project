@@ -9,3 +9,6 @@ __pycache__/
 
 # Cache HuggingFace neu lo tai vao thu muc project
 .cache/
+
+# API keys (never commit)
+.env

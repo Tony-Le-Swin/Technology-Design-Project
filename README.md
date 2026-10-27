@@ -54,7 +54,7 @@ flowchart TD
     subgraph APP["7. Streamlit dashboard (streamlit_app/app.py)"]
         T1["Tab Results<br/>strategies, per class report, confusion matrix"]
         T2["Tab LLM vs BERT<br/>10 models, metrics, prompts"]
-        T3["Tab Try a model<br/>live prediction (local only)"]
+        T3["Tab Try a model<br/>live prediction<br/>(local checkpoints or Hugging Face)"]
     end
 
     DEP["Streamlit Community Cloud<br/>Results and LLM vs BERT tabs"]
@@ -317,7 +317,7 @@ The dashboard makes the whole process explorable. It reads only files that are s
 | --- | --- | --- |
 | Results | Choose 12 class or binary. A table and chart of macro F1 and accuracy for A, B, C and Sequential, then a per class precision, recall and F1 report and a confusion matrix for the selected strategy | `results/pred_*.csv` |
 | LLM vs BERT | Ten models side by side (four BERT strategies, three Claude prompts, three Qwen prompts) with accuracy, precision, recall, macro F1 and number of invalid outputs, a macro F1 chart, an explanation of the three prompt types, and a per class report and confusion matrix for any selected model | `results/pred_B1_bin.csv`, `pred_Seq_bin.csv`, `pred_C_bin.csv`, `pred_A_bin.csv`, `pred_LLM_*_binary.csv` |
-| Try a model | Type a sentence and see the probability of every label from a fine tuned checkpoint | `checkpoints/<name>/best` (local only) |
+| Try a model | Type a sentence and see the probability of every label from a fine tuned model | `checkpoints/<name>/best` (local) or a Hugging Face Hub repo listed in `HF_MODELS` |
 
 ### Run locally
 
@@ -326,14 +326,14 @@ pip install -r requirements.txt
 python -m streamlit run streamlit_app/app.py
 ```
 
-For the live prediction tab also install `torch` and `transformers`, and place checkpoints in `checkpoints/<name>/best` (they are created by `bert/bert_final.ipynb` with `trainer.save_model("checkpoints/<name>/best")`).
+The live prediction tab uses `torch` and `transformers`, which `requirements.txt` includes. It lists local checkpoints from `checkpoints/<name>/best` (created by `bert/bert_final.ipynb` with `trainer.save_model("checkpoints/<name>/best")`) and any Hugging Face Hub repository added to the `HF_MODELS` dictionary at the top of `streamlit_app/app.py`.
 
 ### Deploy on Streamlit Community Cloud
 
 1. Push the repository to GitHub (the account that owns the repository must have admin rights, which Streamlit requires to deploy).
 2. On share.streamlit.io create a new app from this repository and branch.
 3. Set the **main file path** to `streamlit_app/app.py`.
-4. The app installs from `requirements.txt`. `torch` is not installed on the cloud, and the app detects this, so the Results and LLM vs BERT tabs work and the Try a model tab shows an explanatory message.
+4. The app installs from `requirements.txt`. To enable live prediction on the cloud, upload a fine tuned model (`config.json`, `model.safetensors`, tokenizer files) to a public Hugging Face Hub repository and add it to `HF_MODELS` in `streamlit_app/app.py`. Without any model the Try a model tab shows an explanatory message, and the Results and LLM vs BERT tabs always work. If the cloud build is too slow or runs out of memory, remove `torch`, `transformers` and the `--extra-index-url` line from `requirements.txt`; the app detects the missing libraries and hides live prediction.
 
 ---
 
@@ -374,5 +374,5 @@ Create a file named `.env` in the repository root with one line, `ANTHROPIC_API_
 5. **Neutral class.** Dropping `neutral` from GoEmotions is supported by an ablation but remains a modelling decision.
 6. **Ensemble numbers.** Different result files report different ensemble scores (0.3895, 0.3909, 0.3968); the value in section 6.4 comes from `results/master_report_table.csv`.
 7. **LLM coverage.** The LLM experiments cover binary sentiment only; the 12 class task has not been run with an LLM.
-8. **Dashboard on the cloud.** Live prediction is unavailable there because it needs `torch` and the checkpoint files. The only checkpoints saved are general only models (strategy A).
+8. **Dashboard on the cloud.** Live prediction needs a model hosted on the Hugging Face Hub and enough memory for RoBERTa base, which has not been verified on the free tier. The only local checkpoints are general only models (strategy A).
 9. **Qualitative analysis.** A written error analysis (domain vocabulary, bias patterns, failure cases) built on the saved predictions is still to be completed for the report.

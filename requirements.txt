@@ -1,6 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 streamlit>=1.40
 pandas
 scikit-learn
 matplotlib
-# Live prediction (tab "Try a model") needs torch + transformers and the fine-tuned checkpoints.
-# They are not installed on Streamlit Community Cloud, so the app only shows the Results tab there.
+torch
+transformers
+# torch and transformers power the "Try a model" tab (live prediction). If the cloud build is too slow or the app
+# runs out of memory, delete the last two lines and the --extra-index-url line: the other tabs work without them.

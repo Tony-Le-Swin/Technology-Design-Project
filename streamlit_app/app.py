@@ -16,6 +16,14 @@ RESULTS = ROOT / "results"
 CKPTS = ROOT / "checkpoints"
 MAX_LEN = 64
 
+# Fine tuned models hosted on the Hugging Face Hub, shown in the "Try a model" tab: display name -> repo id.
+# One repo can hold several models in sub folders: write "repo-id:sub-folder" (a plain "repo-id" uses the repo root).
+# Each model folder needs config.json, model.safetensors, tokenizer.json and tokenizer_config.json.
+HF_MODELS = {
+    "Binary": "Tony281004/Technology-Design-Project:binary",
+    "12 labels": "Tony281004/Technology-Design-Project:12labels",
+}
+
 # prediction file -> display name, per task
 RUNS = {
     "12-class emotion": {
@@ -126,34 +134,63 @@ with tab_llm:
         b.pyplot(fig2)
 
 CKPT_LABELS = {"A_bin": "Binary", "S2a": "12 labels"}  # folder name -> display name
+BASE_TOKENIZER = "cardiffnlp/twitter-roberta-base"
 
 
-def find_checkpoints():
-    return sorted(p.parent.parent.name for p in CKPTS.glob("*/best/config.json"))
+def find_models():
+    """Display name -> where to load from: local checkpoints first, then Hugging Face Hub repos."""
+    models = {}
+    if HAS_TORCH:
+        for p in sorted(CKPTS.glob("*/best/config.json")):
+            folder = p.parent.parent.name
+            models[CKPT_LABELS.get(folder, folder) + " (local)"] = str(p.parent)
+        for label, repo in HF_MODELS.items():
+            models[label + " (Hugging Face)"] = repo
+    return models
 
-@st.cache_resource
-def load_model(name):
-    path = CKPTS / name / "best"
-    tok = AutoTokenizer.from_pretrained("cardiffnlp/twitter-roberta-base")
-    model = AutoModelForSequenceClassification.from_pretrained(path).eval()
+def split_source(source):
+    """A local folder is used as is; otherwise "repo-id" or "repo-id:sub-folder" on the Hugging Face Hub."""
+    if Path(source).is_dir():
+        return source, None
+    repo, _, sub = source.partition(":")
+    return repo, (sub or None)
+
+@st.cache_resource(show_spinner="Loading model (first use can take a while)...")
+def load_model(source):
+    repo, sub = split_source(source)
+    kw = {"subfolder": sub} if sub else {}
+    try:
+        tok = AutoTokenizer.from_pretrained(repo, **kw)  # a model folder that ships its tokenizer
+    except Exception:
+        tok = AutoTokenizer.from_pretrained(BASE_TOKENIZER)
+    model = AutoModelForSequenceClassification.from_pretrained(repo, low_cpu_mem_usage=True, **kw).eval()
     return tok, model
 
 
 with tab_live:
-    names = find_checkpoints() if HAS_TORCH else []
+    models = find_models()
     if not HAS_TORCH:
         st.info("Live prediction is disabled on this deployment (torch is not installed). "
-                "The Results tab shows the saved predictions of every strategy.")
-    elif not names:
-        st.info("No checkpoints found in checkpoints/<name>/best. Train a model in bert_final.ipynb and save it with trainer.save_model(...).")
+                "The other tabs show the saved predictions of every strategy.")
+    elif not models:
+        st.info("No models found. Save a checkpoint in checkpoints/<name>/best (trainer.save_model(...)) "
+                "or add a Hugging Face repo to HF_MODELS at the top of streamlit_app/app.py.")
     else:
-        name = st.selectbox("Checkpoint", names, format_func=lambda n: CKPT_LABELS.get(n, n))
+        name = st.selectbox("Model", list(models))
         text = st.text_area("Text", "$TSLA earnings beat expectations, loading up more shares.")
         if st.button("Predict") and text.strip():
-            tok, model = load_model(name)
+            try:
+                tok, model = load_model(models[name])
+            except Exception as e:
+                st.error(f"Could not load this model: {type(e).__name__}: {e}")
+                st.stop()
             enc = tok(text, truncation=True, max_length=MAX_LEN, return_tensors="pt")
             with torch.no_grad():
-                probs = model(**enc).logits.softmax(-1)[0]
+                try:
+                    probs = model(**enc).logits.float().softmax(-1)[0]
+                except RuntimeError:  # some CPUs lack half precision kernels: fall back to float32
+                    model.float()
+                    probs = model(**enc).logits.softmax(-1)[0]
             out = pd.Series({model.config.id2label[i]: float(p) for i, p in enumerate(probs)})
             out = out.sort_values(ascending=False)
             st.success(f"Prediction: **{out.index[0]}** ({out.iloc[0]:.1%})")
